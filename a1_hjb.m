@@ -18,6 +18,10 @@ clear, clc
 % - b(S, \tau, Q) = rS, 
 % - c(S, \tau, Q) = r + \mu/\varepsilon
 % - d(S, \tau, Q) = \mu/varepsilon
+%
+% Aim to solve the problem on [0,T]\times[0, S_{max}]
+
+
 
 
 
