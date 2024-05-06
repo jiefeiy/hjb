@@ -3,7 +3,7 @@ clear, clc
 % [1] Forsyth, Labahn. (2007) Numerical methods for controlled
 % Hamilton-Jacobi-Bellman PDEs in finance. 
 %
-% Example 2.3: American option 
+% Example 2.3: American option using Policy iteration in Section 6.2
 % \min( -V_t - {\sigma^2 S^2/2 V_{SS} + rS V_S - rV}, V - V^* ) = 0.
 % 
 % This is equivalent to a penalized control problem 
@@ -27,7 +27,7 @@ p.volatility = 0.2;
 p.rate = 0.06;
 p.expiration = 1;
 p.strike = 40;
-eps = 0.01;
+eps = 0.01;   % penalty level
 
 %% determine the boundary condition
 price_max = 100;
@@ -46,23 +46,53 @@ r = p.rate;
 alpha = sigma^2/(2*h^2) * price_grid.^2 - r/(2*h) * price_grid;
 beta = sigma^2/(2*h^2) * price_grid.^2 + r/(2*h) * price_grid;
 
-mu = zeros(n_price+1, 1);  % initialize the control   % mu == 0 leads to european price
-AQ = diag(-alpha - beta - r - mu/eps);
-AQ = AQ + diag(alpha(2:end), -1) + diag(beta(1:end-1), 1);
-AQ(end, :) = 0;  % last row = 0 for boundary condition
-DQ = mu/eps .* V_star(price_grid);
-
 %% solve the algebraic discrete equations
+tol = 1e-3;
+max_iter = 5; num_iter_all = zeros(n_time, 1);
+
 V = zeros(n_price+1, n_time+1);
 V(:, 1) = V_star(price_grid);  % initial value
 for n = 1:n_time
-    V(:, n+1) = (eye(n_price+1) - dt*AQ) \ (V(:, n) + dt*DQ);
+    Vtemp = V(:, n);
+    k=1; criteria = 1;
+    while k <= max_iter && criteria > tol     % policy iteration
+        %% solve maximization problem
+        %%% Case 1: mu = 0
+        mu = zeros(n_price+1, 1);
+        AQ = diag(-alpha - beta - r - mu/eps) + diag(alpha(2:end), -1) + diag(beta(1:end-1), 1);
+        AQ(end, :) = 0;               % last row = 0 for boundary condition
+        DQ = mu/eps .* V_star(price_grid);
+        obj_0 = (AQ * Vtemp + DQ);
+        %%% Case 2: mu = 1
+        mu = ones(n_price+1, 1);
+        AQ = diag(-alpha - beta - r - mu/eps) + diag(alpha(2:end), -1) + diag(beta(1:end-1), 1);
+        AQ(end, :) = 0;               % last row = 0 for boundary condition
+        DQ = mu/eps .* V_star(price_grid);
+        obj_1 = (AQ * Vtemp + DQ);
+    
+        idx = (obj_1 > obj_0);                       % compare Case 1 and 2
+        mu = zeros(n_price+1, 1); mu(idx) = 1;       % find optimal control
+        AQ = diag(-alpha - beta - r - mu/eps) + diag(alpha(2:end), -1) + diag(beta(1:end-1), 1);
+        AQ(end, :) = 0;               % last row = 0 for boundary condition
+        DQ = mu/eps .* V_star(price_grid);
+        %% compute stopping criteria
+        Vprep = Vtemp;
+        Vtemp = (eye(n_price+1) - dt*AQ) \ (V(:, n) + dt*DQ);
+        criteria = max(abs(Vtemp - Vprep));
+        k=k+1;
+    end
+    num_iter_all(n) = k;                  % record the number of iterations
+    V(:, n+1) = Vtemp;
 end
 
+%% display the results
 plot(0:h:price_max, V(:,end), '.-k');
 hold on; plot(0:h:price_max, V(:, 1), '.-r');
 
-euro = interp1(price_grid, V(:,end), p.price)
+% [X,Y] = meshgrid(0:dt:p.expiration, 0:h:price_max);
+% surf(X, Y, V);
+
+amer = interp1(price_grid, V(:,end), p.price)
 
 [~,euro_ref] = blsprice(p.price, p.strike, p.rate, p.expiration, p.volatility)
 
