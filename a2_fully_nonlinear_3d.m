@@ -13,9 +13,5 @@ clear, clc
 % T = 0.5;
 % x0 = [5 6 7]';
 
-%% 2d finite difference
-n = 4;
-e = ones(n,1);
-T = spdiags([-e 2*e -e], -1:1, n, n);
 
 
