@@ -8,10 +8,11 @@ sigma_max = sqrt(2);
 T = 0.5;
 
 %% discritization and terminal condition
-n_time = 200;
-nx = 50;
-dt = T / n_time;
+nx = 100;
 h = 2*pi / nx;
+n_time = ceil(T/(h^2/4));  % ensure 2d Courant condition
+dt = T/n_time;
+
 x1_grid = linspace(0, 2*pi, nx+1);
 x2_grid = linspace(0, 2*pi, nx+1);
 [X1, X2] = ndgrid(x1_grid, x2_grid);
