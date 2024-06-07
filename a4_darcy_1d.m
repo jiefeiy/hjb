@@ -18,32 +18,33 @@ clear, clc, close all
 
 
 %% parameters
-N = 512;
+N = 1024;
 Nl = 32;
 d = 2;
 tau = 3;
-f = @(x) 1000*(x<=0.5) + 2000*(x>0.5);         % source of fluid 
-% f = @(x) ones(size(x));
+% f = @(x) 1000*(x<=0.5) + 2000*(x>0.5);         % source of fluid 
+f = @(x) ones(size(x));
 
 %% KL expansion 
 phi = @(l,x) sqrt(2)*cos(pi*l.*x);
 lambda = @(l) (pi^2*l.^2 + tau.^2).^(-d);
-sqrt_lambda_all = sqrt(lambda(1:Nl))';
+sqrt_lambda_all = sqrt(lambda(1:Nl));
 
-theta_all = randn(Nl, 1);                      % randomness comes from here
-a = @(x) exp( sum(theta_all .* sqrt_lambda_all .* phi((1:Nl)', x), 1) );
-xgrid = linspace(0, 1, N+1);
+% theta_all = randn(1, Nl);                      % randomness comes from here
+load('theta_all.mat');
+a = @(x) exp( sum(theta_all .* sqrt_lambda_all .* phi((1:Nl), x), 2) );
+xgrid = linspace(0, 1, N+1)';
 
 %%% plot one realization of permeability field a(x,theta)
 plot(xgrid, a(xgrid));
 xlabel('x'); ylabel('permeability');
 
 %% solve the pde for one realization of a(x,theta)
-[~, u] = solve_darcy_1d(1/3, theta_all, f, N, Nl, d, tau);
+[u_xq, u] = solve_darcy_1d(2/3, theta_all, f, N, Nl, d, tau);
 figure(2);
 plot(xgrid, u);
 xlabel('x'); ylabel('u(x)');
-
+disp(u_xq)
 
 %% solution u with respect to theta
 % M = 100;                      % M collocation points of theta
@@ -59,25 +60,25 @@ xlabel('x'); ylabel('u(x)');
 
 
 %% dependencies
-function [u_x, u] = solve_darcy_1d(x, theta, f, N, Nl, d, tau)
+function [u_xq, u] = solve_darcy_1d(xq, theta, f, N, Nl, d, tau)
 % solve the pde for one realization of a(x,theta)
 % using finite difference scheme
 phi = @(l,x) sqrt(2)*cos(pi*l.*x);
 lambda = @(l) (pi^2*l.^2 + tau.^2).^(-d);
-sqrt_lambda_all = sqrt(lambda(1:Nl))';
+sqrt_lambda_all = sqrt(lambda(1:Nl));
 
-a = @(x) exp( sum(theta .* sqrt_lambda_all .* phi((1:Nl)', x), 1) );
-xgrid = linspace(0, 1, N+1);
+a = @(x) exp( sum(theta .* sqrt_lambda_all .* phi((1:Nl), x), 2) );
+xgrid = linspace(0, 1, N+1)';
 
 dx = 1/N;
 agrid = a(xgrid);
 A = diag( agrid(1:N-1) + 2*agrid(2:N) + agrid(3:N+1) );
 A = A + diag( -(agrid(2:N-1) + agrid(3:N)) , -1) ...
     + diag( -(agrid(2:N-1) + agrid(3:N)) , 1);
-fgrid = f(xgrid(2:N))' * (2*dx*dx);
+fgrid = f(xgrid(2:N)) * (2*dx*dx);
 u = A \ fgrid;
 u = [0; u; 0];
-u_x = interp1(xgrid, u, x, 'linear');
+u_xq = interp1(xgrid, u, xq, 'linear');
 end
 
 
