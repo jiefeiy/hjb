@@ -1,7 +1,7 @@
 clear, clc, close all
 % use Feynman-Kac formula
 
-N = 512;
+% N = 512;
 Nl = 32;
 d = 2;
 tau = 3;
@@ -57,5 +57,5 @@ find(k_first_exit == N_time)
 
 u_xq = sum(f_sample, "all")*dt/M
 
-save('theta_all.mat', "theta_all");
+% save('theta_all.mat', "theta_all");
 

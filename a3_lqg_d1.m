@@ -30,7 +30,7 @@ m_star_on_xq = zeros(size(xq_grid));
 %% dynamic programming: interpolate Q function
 V_on_xq = g(xq_grid);
 for n = n_time-1:-1:0
-    Q_on_grid = Sr.knots(2,:).^2 + wS.weights*(V_on_xq);
+    Q_on_grid = Sr.knots(2,:).^2 *dt + wS.weights*(V_on_xq);
     Q_fun = @(x,m) interpolate_on_sparse_grid(S,Sr,Q_on_grid,[x;m]);
     V_on_xq = zeros(size(xq_grid));
     for i = 1:nq
@@ -61,7 +61,7 @@ rng("default");
 n_x = 50;
 dx = (xmax - xmin)/n_x;
 xgrid = (xmin:dx:xmax)';
-M = 100000;
+M = 200000;
 u0_exact = zeros(size(xgrid));
 for j = 1:n_x+1
     u0_exact(j) = -1/lambda * log( mean( ((1 + (xgrid(j) + sqrt(2)*sqrt(T)*randn(M,1)).^2)/2).^(-lambda) ) );
@@ -81,7 +81,7 @@ for j = 2:n_x
 end
 
 figure(2);
-hold on; plot(xgrid, m_exact, '-r');
+hold on; plot(xgrid(2:end-1), m_exact(2:end-1), 'or');
 
 xlabel('x')
 ylabel('$m_0(x)$', Interpreter='latex');
